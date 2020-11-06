@@ -54,15 +54,22 @@ def run(input_sizes,epochs,learning_rate,batch,imnet_path,architecture,resnet_we
     cluster_cfg = cluster_cfg._replace(dist_url=init_file.as_uri())
     trainer = Trainer(train_cfg, cluster_cfg)
     
-    #The code should be launch on each GPUs
-    try:    
-        if global_rank==0:
-            val_accuracy = trainer.__call__()
-            print(f"Validation accuracy: {val_accuracy}")
-        else:
-            trainer.__call__()
-    except:
-      print("Job failed")
+    # #The code should be launch on each GPUs
+    # try:    
+    #     if global_rank==0:
+    #         val_accuracy = trainer.__call__()
+    #         print(f"Validation accuracy: {val_accuracy}")
+    #     else:
+    #         trainer.__call__()
+    # except:
+    #   print("Job failed")
+
+
+    if global_rank==0:
+      val_accuracy = trainer.__call__()
+      print(f"Validation accuracy: {val_accuracy}")
+    else:
+      trainer.__call__()
 
 
 if __name__ == "__main__":

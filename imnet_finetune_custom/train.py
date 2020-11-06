@@ -91,19 +91,19 @@ class Trainer:
         self._state.save(osp.join(save_dir, "checkpoint.pth"))
         self._state.save(osp.join(save_dir, "checkpoint_"+str(self._state.epoch)+".pth"))
 
-        if rm_init:
-            os.remove(self._cluster_cfg.dist_url[7:])  
+        # if rm_init:
+        #     os.remove(self._cluster_cfg.dist_url[7:])  
         empty_trainer = Trainer(self._train_cfg, self._cluster_cfg)
         return empty_trainer
 
     def _setup_process_group(self) -> None:
         torch.cuda.set_device(self._train_cfg.local_rank)
-        torch.distributed.init_process_group(
-            backend=self._cluster_cfg.dist_backend,
-            init_method=self._cluster_cfg.dist_url,
-            world_size=self._train_cfg.num_tasks,
-            rank=self._train_cfg.global_rank,
-        )
+        # torch.distributed.init_process_group(
+        #     backend=self._cluster_cfg.dist_backend,
+        #     init_method=self._cluster_cfg.dist_url,
+        #     world_size=self._train_cfg.num_tasks,
+        #     rank=self._train_cfg.global_rank,
+        # )
         print(f"Process group: {self._train_cfg.num_tasks} tasks, rank: {self._train_cfg.global_rank}")
 
     def _init_state(self) -> None:
@@ -126,24 +126,23 @@ class Trainer:
         transform_test = transformation['val']
         
         
-        train_set = datasets.ImageFolder(self._train_cfg.imnet_path+ '/train',transform=transform_test)
+        train_set = datasets.ImageFolder(self._train_cfg.imnet_path + '/train_data',transform=transform_test)
         
-        train_sampler = torch.utils.data.distributed.DistributedSampler(
-            train_set,num_replicas=self._train_cfg.num_tasks, rank=self._train_cfg.global_rank
-        )
+        # train_sampler = torch.utils.data.distributed.DistributedSampler(
+        #     train_set,num_replicas=self._train_cfg.num_tasks, rank=self._train_cfg.global_rank
+        # )
         
         self._train_loader = torch.utils.data.DataLoader(
             train_set,
             batch_size=self._train_cfg.batch_per_gpu,
-            num_workers=(self._train_cfg.workers-1),
-            sampler=train_sampler,
+            num_workers=(self._train_cfg.workers-1)
+            #sampler=train_sampler,
         )
-        test_set = datasets.ImageFolder(self._train_cfg.imnet_path  + '/val',transform=transform_test)
+        test_set = datasets.ImageFolder(self._train_cfg.imnet_path  + '/val_data',transform=transform_test)
 
 
         self._test_loader = torch.utils.data.DataLoader(
-            test_set, batch_size=self._train_cfg.batch_per_gpu, shuffle=False, num_workers=(self._train_cfg.workers-1),
-        )
+            test_set, batch_size=self._train_cfg.batch_per_gpu, shuffle=False, num_workers=(self._train_cfg.workers-1))
 
         print(f"Total batch_size: {self._train_cfg.batch_per_gpu * self._train_cfg.num_tasks}", flush=True)
 
@@ -188,7 +187,7 @@ class Trainer:
             model = create_model(self._train_cfg.EfficientNet_models,pretrained=False,num_classes=self._train_cfg.classes) #see https://github.com/rwightman/pytorch-image-models/blob/master/timm/models/efficientnet.py for name
             model.requires_grad=False
             # pretrained_dict=load_state_dict_from_url(default_cfgs[self._train_cfg.EfficientNet_models]['url'],map_location='cpu')
-            pretrained_dict = torch.load_state_dict(self._train_cfg.ckpt_path)
+            pretrained_dict = torch.load(self._train_cfg.ckpt_path)['model_state_dict']
             model_dict = model.state_dict()
             for k in model_dict.keys():
                 if(k in pretrained_dict.keys()):
@@ -199,9 +198,9 @@ class Trainer:
             model.conv_head.requires_grad=True
             
         model.cuda(self._train_cfg.local_rank)
-        model = torch.nn.parallel.DistributedDataParallel(
-            model, device_ids=[self._train_cfg.local_rank], output_device=self._train_cfg.local_rank
-        )
+        # model = torch.nn.parallel.DistributedDataParallel(
+        #     model, device_ids=[self._train_cfg.local_rank], output_device=self._train_cfg.local_rank
+        # )
         linear_scaled_lr = 8.0 * self._train_cfg.lr * self._train_cfg.batch_per_gpu * self._train_cfg.num_tasks /512.0
         optimizer = optim.SGD(model.parameters(), lr=linear_scaled_lr, momentum=0.9,weight_decay=1e-4)
         lr_scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=30)
@@ -224,6 +223,7 @@ class Trainer:
         total = 0
         count=0.0
         running_val_loss = 0.0
+        
         self._state.model.eval()
         
         if self._train_cfg.architecture=='PNASNet' :
@@ -232,14 +232,14 @@ class Trainer:
             self._state.model.module.cell_9.eval()
             self._state.model.module.dropout.eval()
         elif self._train_cfg.architecture=='EfficientNet' :
-            self._state.model.module.classifier.eval()
-            self._state.model.module.conv_head.eval()
-            self._state.model.module.bn2.eval()
+            self._state.model.classifier.eval()
+            self._state.model.conv_head.eval()
+            self._state.model.bn2.eval()
             
         else:
             self._state.model.module.layer4[2].bn3.eval()
             
-            
+        
         with torch.no_grad():
             for data in self._test_loader:
                 images, labels = data
@@ -252,6 +252,7 @@ class Trainer:
                 correct += (predicted == labels).sum().item()
                 running_val_loss += loss_val.item()
                 count=count+1.0
+        
 
         acc = correct / total
         ls_nm=running_val_loss/count
@@ -270,13 +271,13 @@ class Trainer:
                 self._state.model.module.cell_9.train()
                 self._state.model.module.dropout.train()
             elif self._train_cfg.architecture=='EfficientNet' :
-                self._state.model.module.classifier.train()
-                self._state.model.module.conv_head.train()
-                self._state.model.module.bn2.train()
+                self._state.model.classifier.train()
+                self._state.model.conv_head.train()
+                self._state.model.bn2.train()
             else:
                 self._state.model.module.layer4[2].bn3.train()
                 
-                
+            
             self._state.lr_scheduler.step(epoch)
             self._state.epoch = epoch
             running_loss = 0.0
@@ -286,7 +287,9 @@ class Trainer:
                 labels = labels.cuda(self._train_cfg.local_rank, non_blocking=True)
 
                 outputs = self._state.model(inputs)
+
                 loss = criterion(outputs, labels)
+
 
                 self._state.optimizer.zero_grad()
                 loss.backward()
@@ -313,9 +316,9 @@ class Trainer:
                     self._state.model.module.cell_9.eval()
                     self._state.model.module.dropout.eval()
                 elif self._train_cfg.architecture=='EfficientNet' :
-                    self._state.model.module.classifier.eval()
-                    self._state.model.module.conv_head.eval()
-                    self._state.model.module.bn2.eval()
+                    self._state.model.classifier.eval()
+                    self._state.model.conv_head.eval()
+                    self._state.model.bn2.eval()
                 else:
                     self._state.model.module.layer4[2].bn3.eval()
                     
