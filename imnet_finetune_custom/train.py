@@ -298,10 +298,10 @@ class Trainer:
 
                 #outputs = self._state.model(inputs)
                 if not five:
-                  outputs = self._state.model(images)
+                  outputs = self._state.model(inputs)
                 else:
-                  bs, ncrops, c, h, w = images.size()
-                  outputs = self._state.model(images.view(-1, c, h, w))
+                  bs, ncrops, c, h, w = inputs.size()
+                  outputs = self._state.model(inputs.view(-1, c, h, w))
                   outputs = outputs.view(bs, ncrops, -1).mean(1)
 
                 loss = criterion(outputs, labels)
