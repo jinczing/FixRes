@@ -43,7 +43,7 @@ class Resize(transforms.Resize):
 
 
 
-def get_transforms(input_size=224,test_size=224, kind='full', crop=True, need=('train', 'val'), backbone=None):
+def get_transforms(input_size=224,test_size=224, kind='full', crop=True, five=True, need=('train', 'val'), backbone=None):
     mean, std = [0.485, 0.456, 0.406], [0.229, 0.224, 0.225]
     if backbone is not None and backbone in ['pnasnet5large', 'nasnetamobile']:
         mean, std = [0.5, 0.5, 0.5], [0.5, 0.5, 0.5]
@@ -70,11 +70,18 @@ def get_transforms(input_size=224,test_size=224, kind='full', crop=True, need=('
             raise ValueError('Transforms kind {} unknown'.format(kind))
     if 'val' in need:
         if crop:
+          if not five:
             transformations['val'] = transforms.Compose(
                 [Resize(int((256 / 224) * test_size)),  # to maintain same ratio w.r.t. 224 images
                  transforms.CenterCrop(test_size),
                  transforms.ToTensor(),
                  transforms.Normalize(mean, std)])
+          else:
+            transformations['val'] = transforms.Compose(
+                [transforms.Resize(int((256 / 224) * test_size)),  # to maintain same ratio w.r.t. 224 images
+                 transforms.FiveCrop(test_size),
+                 transforms.Lambda(lambda crops: torch.stack([transforms.ToTensor()(crop) for crop in crops])),
+                 transforms.Lambda(lambda crops: torch.stack([transforms.Normalize(mean, std)(crop) for crop in crops]))])
         else:
             transformations['val'] = transforms.Compose(
                 [Resize(test_size, largest=True),  # to maintain same ratio w.r.t. 224 images

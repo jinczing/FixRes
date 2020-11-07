@@ -214,9 +214,11 @@ class Trainer:
 
     def _train(self) -> Optional[float]:
         criterion = nn.CrossEntropyLoss()
-        print_freq = 10
+        print_freq = 100
+        eval_freq = 10
         acc = None
         max_accuracy=0.0
+        five = True
         
         print("Evaluation before fine-tuning")        
         correct = 0
@@ -245,7 +247,15 @@ class Trainer:
                 images, labels = data
                 images = images.cuda(self._train_cfg.local_rank, non_blocking=True)
                 labels = labels.cuda(self._train_cfg.local_rank, non_blocking=True)
-                outputs = self._state.model(images)
+                #outputs = self._state.model(images)
+
+                if not five:
+                  outputs = self._state.model(images)
+                else:
+                  bs, ncrops, c, h, w = images.size()
+                  outputs = self._state.model(images.view(-1, c, h, w))
+                  outputs = outputs.view(bs, ncrops, -1).mean(1)
+
                 loss_val = criterion(outputs, labels)
                 _, predicted = torch.max(outputs.data, 1)
                 total += labels.size(0)
@@ -286,7 +296,13 @@ class Trainer:
                 inputs = inputs.cuda(self._train_cfg.local_rank, non_blocking=True)
                 labels = labels.cuda(self._train_cfg.local_rank, non_blocking=True)
 
-                outputs = self._state.model(inputs)
+                #outputs = self._state.model(inputs)
+                if not five:
+                  outputs = self._state.model(images)
+                else:
+                  bs, ncrops, c, h, w = images.size()
+                  outputs = self._state.model(images.view(-1, c, h, w))
+                  outputs = outputs.view(bs, ncrops, -1).mean(1)
 
                 loss = criterion(outputs, labels)
 
@@ -300,8 +316,8 @@ class Trainer:
                     print(f"[{epoch:02d}, {i:05d}] loss: {running_loss/print_freq:.3f}", flush=True)
                     running_loss = 0.0
                 
-                
-            if epoch==self._train_cfg.epochs-1:
+            # if epoch==self._train_cfg.epochs-1:
+            if (epoch+1)%eval_freq == 0:
                 print("Start evaluation of the model", flush=True)
                 
                 correct = 0
@@ -327,7 +343,13 @@ class Trainer:
                         images, labels = data
                         images = images.cuda(self._train_cfg.local_rank, non_blocking=True)
                         labels = labels.cuda(self._train_cfg.local_rank, non_blocking=True)
-                        outputs = self._state.model(images)
+                        #outputs = self._state.model(images)
+                        if not five:
+                          outputs = self._state.model(images)
+                        else:
+                          bs, ncrops, c, h, w = images.size()
+                          outputs = self._state.model(images.view(-1, c, h, w))
+                          outputs = outputs.view(bs, ncrops, -1).mean(1)
                         loss_val = criterion(outputs, labels)
                         _, predicted = torch.max(outputs.data, 1)
                         total += labels.size(0)
