@@ -123,10 +123,11 @@ class Trainer:
             backbone_architecture='pnasnet5large'
             
         transformation=get_transforms(input_size=self._train_cfg.input_size,test_size=self._train_cfg.input_size, kind='full', crop=True, need=('train', 'val'), backbone=backbone_architecture)
+        transform_train = transformation['train']
         transform_test = transformation['val']
         
         
-        train_set = datasets.ImageFolder(self._train_cfg.imnet_path + '/train_data',transform=transform_test)
+        train_set = datasets.ImageFolder(self._train_cfg.imnet_path + '/train_data',transform=transform_train)
         
         # train_sampler = torch.utils.data.distributed.DistributedSampler(
         #     train_set,num_replicas=self._train_cfg.num_tasks, rank=self._train_cfg.global_rank
