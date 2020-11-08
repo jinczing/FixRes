@@ -102,7 +102,7 @@ def get_transforms(input_size=224,test_size=224, kind='full', crop=True, five=Tr
                 transforms.ColorJitter(0.3, 0.3, 0.3),
                 transforms.RandomHorizontalFlip(),
                 transforms.ToTensor(),
-                Cutout(n_holes=1, length=int(self.input_size[0]/3)),        
+                Cutout(n_holes=1, length=int(input_size/3)),        
                 transforms.Normalize(mean, std),
             ])
 

@@ -220,6 +220,7 @@ class Trainer:
         acc = None
         max_accuracy=0.0
         five = True
+        train_aug = True
         
         print("Evaluation before fine-tuning")        
         correct = 0
@@ -250,7 +251,7 @@ class Trainer:
                 labels = labels.cuda(self._train_cfg.local_rank, non_blocking=True)
                 #outputs = self._state.model(images)
 
-                if not five:
+                if not five and not train_aug:
                   outputs = self._state.model(images)
                 else:
                   bs, ncrops, c, h, w = images.size()
@@ -298,7 +299,7 @@ class Trainer:
                 labels = labels.cuda(self._train_cfg.local_rank, non_blocking=True)
 
                 #outputs = self._state.model(inputs)
-                if not five:
+                if not five and not train_aug:
                   outputs = self._state.model(inputs)
                 else:
                   bs, ncrops, c, h, w = inputs.size()
@@ -345,7 +346,7 @@ class Trainer:
                         images = images.cuda(self._train_cfg.local_rank, non_blocking=True)
                         labels = labels.cuda(self._train_cfg.local_rank, non_blocking=True)
                         #outputs = self._state.model(images)
-                        if not five:
+                        if not five and not train_aug:
                           outputs = self._state.model(images)
                         else:
                           bs, ncrops, c, h, w = images.size()
