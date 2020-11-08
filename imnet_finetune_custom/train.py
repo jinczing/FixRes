@@ -251,7 +251,7 @@ class Trainer:
                 labels = labels.cuda(self._train_cfg.local_rank, non_blocking=True)
                 #outputs = self._state.model(images)
 
-                if not five and not train_aug:
+                if not five:
                   outputs = self._state.model(images)
                 else:
                   bs, ncrops, c, h, w = images.size()
@@ -299,7 +299,7 @@ class Trainer:
                 labels = labels.cuda(self._train_cfg.local_rank, non_blocking=True)
 
                 #outputs = self._state.model(inputs)
-                if not five and not train_aug:
+                if not five or train_aug:
                   outputs = self._state.model(inputs)
                 else:
                   bs, ncrops, c, h, w = inputs.size()
@@ -346,7 +346,7 @@ class Trainer:
                         images = images.cuda(self._train_cfg.local_rank, non_blocking=True)
                         labels = labels.cuda(self._train_cfg.local_rank, non_blocking=True)
                         #outputs = self._state.model(images)
-                        if not five and not train_aug:
+                        if not five:
                           outputs = self._state.model(images)
                         else:
                           bs, ncrops, c, h, w = images.size()
