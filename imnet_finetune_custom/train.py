@@ -219,8 +219,8 @@ class Trainer:
         eval_freq = 3
         acc = None
         max_accuracy=0.0
-        five = True
-        train_aug = True
+        five = False
+        train_aug = False
         
         print("Evaluation before fine-tuning")        
         correct = 0
