@@ -123,11 +123,11 @@ class Trainer:
             backbone_architecture='pnasnet5large'
             
         transformation=get_transforms(input_size=self._train_cfg.input_size,test_size=self._train_cfg.input_size, kind='full', crop=True, need=('train', 'val'), backbone=backbone_architecture)
-        transform_train = transformation['train']
+        #transform_train = transformation['train']
         transform_test = transformation['val']
         
         
-        train_set = datasets.ImageFolder(self._train_cfg.imnet_path + '/train_data',transform=transform_train)
+        train_set = datasets.ImageFolder(self._train_cfg.imnet_path + '/train_data',transform=transform_test)
         
         # train_sampler = torch.utils.data.distributed.DistributedSampler(
         #     train_set,num_replicas=self._train_cfg.num_tasks, rank=self._train_cfg.global_rank
@@ -215,8 +215,8 @@ class Trainer:
 
     def _train(self) -> Optional[float]:
         criterion = nn.CrossEntropyLoss()
-        print_freq = 100
-        eval_freq = 10
+        print_freq = 250
+        eval_freq = 3
         acc = None
         max_accuracy=0.0
         five = True
