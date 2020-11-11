@@ -82,7 +82,7 @@ class Cutout(object):
 
 
 
-def get_transforms(input_size=224,test_size=224, kind='full', crop=True, five=False, need=('train', 'val'), backbone=None):
+def get_transforms(input_size=224,test_size=224, kind='full', crop=True, five=True need=('train', 'val'), backbone=None):
     mean, std = [0.485, 0.456, 0.406], [0.229, 0.224, 0.225]
     if backbone is not None and backbone in ['pnasnet5large', 'nasnetamobile']:
         mean, std = [0.5, 0.5, 0.5], [0.5, 0.5, 0.5]
@@ -105,6 +105,14 @@ def get_transforms(input_size=224,test_size=224, kind='full', crop=True, five=Fa
                 Cutout(n_holes=1, length=int(input_size/3)),        
                 transforms.Normalize(mean, std),
             ])
+        elif kind == 'val':
+          transformations['train'] = transforms.Compose(
+            [Resize(int((256/224) * test_size)),
+              transforms.CenterCrop(test_size),
+              transforms.ToTensor(),
+              transforms.Normalize(mean, std)
+            ]
+          )
 
         else:
             raise ValueError('Transforms kind {} unknown'.format(kind))

@@ -122,12 +122,13 @@ class Trainer:
         if  self._train_cfg.architecture=='PNASNet' :
             backbone_architecture='pnasnet5large'
             
-        transformation=get_transforms(input_size=self._train_cfg.input_size,test_size=self._train_cfg.input_size, kind='full', crop=True, need=('train', 'val'), backbone=backbone_architecture)
+        transformation=get_transforms(input_size=self._train_cfg.input_size,test_size=self._train_cfg.input_size, kind='val', crop=True, need=('train', 'val'), backbone=backbone_architecture)
         #transform_train = transformation['train']
         transform_test = transformation['val']
+        transform_train = transformation['train']
         
         
-        train_set = datasets.ImageFolder(self._train_cfg.imnet_path + '/train_data',transform=transform_test)
+        train_set = datasets.ImageFolder(self._train_cfg.imnet_path + '/train_data',transform=transform_train)
         
         # train_sampler = torch.utils.data.distributed.DistributedSampler(
         #     train_set,num_replicas=self._train_cfg.num_tasks, rank=self._train_cfg.global_rank
@@ -219,7 +220,7 @@ class Trainer:
         eval_freq = 3
         acc = None
         max_accuracy=0.0
-        five = False
+        five = True
         train_aug = False
         
         print("Evaluation before fine-tuning")        
@@ -299,7 +300,7 @@ class Trainer:
                 labels = labels.cuda(self._train_cfg.local_rank, non_blocking=True)
 
                 #outputs = self._state.model(inputs)
-                if not five or train_aug:
+                if not train_aug:
                   outputs = self._state.model(inputs)
                 else:
                   bs, ncrops, c, h, w = inputs.size()
